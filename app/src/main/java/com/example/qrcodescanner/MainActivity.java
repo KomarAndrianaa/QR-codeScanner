@@ -1,10 +1,12 @@
 package com.example.qrcodescanner;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -17,10 +19,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
- //View object
-   private Button buttonScanning;
-   private TextView textViewName,textViewClass,textViewNim;
- //qr scanning object
+    //View object
+    private Button buttonScanning;
+    private TextView textViewName,textViewClass,textViewNim;
+    //qr scanning object
     private IntentIntegrator qrScan;
 
     @Override
@@ -40,7 +42,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         buttonScanning.setOnClickListener(this);
     }
 
-        //untuk mendapatkan hasil scanning
+    //untuk mendapatkan hasil scanning
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data){
         IntentResult result = IntentIntegrator .parseActivityResult(requestCode, resultCode, data);
@@ -50,15 +52,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (result.getContents() == null) {
                 Toast.makeText(this, "Hasil Scanning Tidak Ada",
                         Toast.LENGTH_LONG).show();
-            } else{
+            }else if (Patterns.WEB_URL.matcher(result.getContents()).matches()) {
+                Intent visitUrl = new Intent(Intent.ACTION_VIEW, Uri.parse(result.getContents()));
+                startActivity(visitUrl);
+            }else if (Patterns.PHONE.matcher(result.getContents()).matches()) {
+                String number = String.valueOf(result.getContents());
+                Intent callIntent = new Intent(Intent.ACTION_CALL);
+                callIntent.setData(Uri.parse("tel:" + number));
+                startActivity(callIntent);
+                try {
+                    startActivity(Intent.createChooser(callIntent,"waiting..."));
+                } catch (android.content.ActivityNotFoundException exception) {
+                    Toast.makeText(MainActivity.this,"There ada no phone apk client installed.", Toast.LENGTH_SHORT).show();
+                }
+            } else {
                 //jika qCode tidak ditemukan datanya
                 try {
-                //konversi datanya ke json
+                    //konversi datanya ke json
                     JSONObject obj = new JSONObject(result.getContents());
-                //diset nilai datanya ke textview
-                textViewName.setText(obj.getString("Nama"));
-                textViewClass.setText(obj.getString("Kelas"));
-                textViewNim.setText(obj.getString("Nim"));
+                    //diset nilai datanya ke textview
+                    textViewName.setText(obj.getString("Nama"));
+                    textViewClass.setText(obj.getString("Kelas"));
+                    textViewNim.setText(obj.getString("Nim"));
                 } catch (JSONException e){
                     e.printStackTrace();
                     Toast.makeText(this, result.getContents(),
